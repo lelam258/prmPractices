@@ -1,4 +1,6 @@
+
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -21,16 +23,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isLoading = false;
   bool _obscurePassword = true;
-
   Future<void> _triggerLocalNotification(String username) async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
     AndroidNotificationDetails(
       'auth_channel_id',
       'Authentication Notifications',
-      channelDescription: 'Notifications triggered after user authentication actions',
       importance: Importance.max,
       priority: Priority.high,
-      ticker: 'ticker',
     );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
@@ -44,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
       platformChannelSpecifics,
     );
   }
-
   Future<void> _loginWithRealAPI() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -63,12 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        final String token = data['token'];
-        final String firstName = data['firstName'] ?? 'User';
-        final prefs = await SharedPreferences.getInstance();
+        final String token = data['token'] ?? '';
+        final String firstName = data['firstName'] ?? data['username'] ?? 'User';
+        final SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', token);
         await prefs.setString('user_name', firstName);
-
         await _triggerLocalNotification(firstName);
 
         if (!mounted) return;
@@ -83,28 +87,28 @@ class _LoginScreenState extends State<LoginScreen> {
         _showErrorSnackBar(errorData['message'] ?? 'Invalid username or password');
       }
     } catch (e) {
-      _showErrorSnackBar('Network connection failed: $e');
+      _showErrorSnackBar('Network error or invalid data format: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _loginWithGoogleFirebase() async {
+  Future<void> _loginWithGoogle() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
     setState(() => _isLoading = false);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', 'G_FIREBASE_MOCK_TOKEN_999');
-    await prefs.setString('user_name', 'Google Developer');
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', 'MOCK_GOOGLE_TOKEN_XYZ123');
+    await prefs.setString('user_name', 'Google User');
 
-    await _triggerLocalNotification('Google Developer');
+    await _triggerLocalNotification('Google User');
 
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => const HomeScreen(token: 'G_FIREBASE_MOCK_TOKEN_999', loginMethod: 'Firebase Google Auth'),
+        builder: (context) => const HomeScreen(token: 'MOCK_GOOGLE_TOKEN_XYZ123', loginMethod: 'Firebase Google Auth'),
       ),
     );
   }
@@ -177,6 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         validator: (value) => (value == null || value.isEmpty) ? 'Please enter password' : null,
                       ),
                       const SizedBox(height: 24),
+
                       ElevatedButton(
                         onPressed: _isLoading ? null : _loginWithRealAPI,
                         style: ElevatedButton.styleFrom(
@@ -202,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
 
                       OutlinedButton.icon(
-                        onPressed: _isLoading ? null : _loginWithGoogleFirebase,
+                        onPressed: _isLoading ? null : _loginWithGoogle,
                         icon: const Icon(Icons.g_mobiledata_rounded, size: 30, color: Colors.red),
                         label: const Text('Continue with Google Auth', style: TextStyle(fontSize: 15, color: Colors.black87)),
                         style: OutlinedButton.styleFrom(

@@ -1,5 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'login_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -7,10 +9,10 @@ class HomeScreen extends StatelessWidget {
   final String loginMethod;
 
   const HomeScreen({super.key, required this.token, required this.loginMethod});
-
   void _handleLogout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token'); // Xóa chính xác token
+    await prefs.remove('user_name');
 
     if (!context.mounted) return;
     Navigator.pushReplacement(

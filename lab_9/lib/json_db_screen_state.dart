@@ -1,13 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'main.dart';
-
 class JsonDatabaseScreen extends StatefulWidget {
   const JsonDatabaseScreen({super.key});
 
@@ -28,23 +23,14 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
     super.initState();
     _loadDataAtStartup();
   }
-
-  // ===========================================================================
-  // TẦNG XỬ LÝ LOGIC FILE (STORAGE SERVICE LAYER - Lab 9.2 & Lab 9.3)
-  // ===========================================================================
-
-  // Hàm lấy đường dẫn tệp JSON trong thư mục tài liệu của ứng dụng trên thiết bị (Lab 9.2 - Step 2)
   Future<File> _getLocalFile() async {
     final directory = await getApplicationDocumentsDirectory(); // path_provider
     return File('${directory.path}/local_movies.json');
   }
 
-  // Hàm nạp dữ liệu khi khởi chạy ứng dụng (Lab 9.2 - Step 3)
   Future<void> _loadDataAtStartup() async {
     try {
       final file = await _getLocalFile();
-
-      // Nếu tệp tin cục bộ đã tồn tại, tiến hành đọc tệp
       if (await file.exists()) {
         String contents = await file.readAsString();
         setState(() {
@@ -53,7 +39,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
           _isLoading = false;
         });
       } else {
-        // Nếu ứng dụng chạy lần đầu chưa có file, tự động nạp từ bản mã Assets (Lab 9.1 kết hợp)
         await _importFromAssets();
       }
     } catch (e) {
@@ -62,11 +47,9 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
     }
   }
 
-  // Lab 9.1: Đọc dữ liệu JSON thô từ thư mục tệp nhúng Assets công khai
   Future<void> _importFromAssets() async {
     setState(() => _isLoading = true);
     try {
-      // Đọc tệp văn bản từ assets thông qua rootBundle
       String jsonString = await rootBundle.loadString('assets/data/movies.json');
       List<dynamic> decodedData = jsonDecode(jsonString);
 
@@ -75,8 +58,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
         _filteredMoviesList = _moviesList;
         _isLoading = false;
       });
-
-      // Đồng bộ lưu đè ngay vào tệp hệ thống thiết bị để sẵn sàng thực hiện CRUD
       await _autoSaveToStorage();
       _showSnackBar('Data successfully loaded from Assets!', Colors.green);
     } catch (e) {
@@ -85,25 +66,16 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
     }
   }
 
-  // Lab 9.2 & 9.3: Hàm tự động mã hóa và ghi dữ liệu đè lại vào File hệ thống thiết bị (Auto-Save)
   Future<void> _autoSaveToStorage() async {
     try {
       final file = await _getLocalFile();
-      String rawJson = jsonEncode(_moviesList); // Chuyển List -> Chuỗi JSON mã hóa
-      await file.writeAsString(rawJson); // Ghi file bất đồng bộ
-
-      // Cập nhật bộ lọc tìm kiếm trên UI ngay khi dữ liệu gốc thay đổi
+      String rawJson = jsonEncode(_moviesList);
+      await file.writeAsString(rawJson);
       _filterMovies(_searchQuery);
     } catch (e) {
       _showSnackBar('Auto-save failed: $e', Colors.red);
     }
   }
-
-  // ===========================================================================
-  // CÁC THAO TÁC NGHIỆP VỤ CRUD DATABASE (Lab 9.3 - Step 2 & 3)
-  // ===========================================================================
-
-  // Chức năng Tìm kiếm / Lọc nội dung phim (Search Filter)
   void _filterMovies(String query) {
     setState(() {
       _searchQuery = query;
@@ -118,11 +90,8 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
       }
     });
   }
-
-  // Thao tác THÊM phim mới (Create - Tự sinh ID tăng dần)
   void _addMovie(String title, String genre, String year) {
     setState(() {
-      // Tính toán tạo mã ID duy nhất dựa trên thời gian hoặc mã số cao nhất
       String uniqueId = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
 
       _moviesList.add({
@@ -132,11 +101,10 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
         "year": year,
       });
     });
-    _autoSaveToStorage(); // Tự động ghi lại vào ổ cứng thiết bị
+    _autoSaveToStorage();
     _showSnackBar('Added "$title" to database.', Colors.blue);
   }
 
-  // Thao tác SỬA/CẬP NHẬT thông tin phim (Update)
   void _editMovie(String id, String newTitle, String newGenre, String newYear) {
     setState(() {
       int index = _moviesList.indexWhere((m) => m['id'] == id);
@@ -152,8 +120,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
     _autoSaveToStorage();
     _showSnackBar('Movie information updated.', Colors.orange);
   }
-
-  // Thao tác XÓA phim ra khỏi cơ sở dữ liệu (Delete)
   void _deleteMovie(String id, String title) {
     setState(() {
       _moviesList.removeWhere((m) => m['id'] == id);
@@ -161,12 +127,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
     _autoSaveToStorage();
     _showSnackBar('Removed "$title" from system.', Colors.redAccent);
   }
-
-  // ===========================================================================
-  // GIAO DIỆN HIỂN THỊ (USER INTERACTION LAYOUT)
-  // ===========================================================================
-
-  // Hàm phụ trợ tạo nhanh SnackBar hiển thị phản hồi UX thông minh (Bonus Feature)
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -176,8 +136,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
       ),
     );
   }
-
-  // Hộp thoại biểu mẫu dùng chung cho cả tác vụ Thêm và Sửa thông tin phim
   void _showMovieFormDialog({Map<String, dynamic>? existingMovie}) {
     final bool isEditMode = existingMovie != null;
     final titleCtrl = TextEditingController(text: isEditMode ? existingMovie['title'] : '');
@@ -233,7 +191,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
     );
   }
 
-  // Hộp thoại xác nhận trước khi thực thi xóa phần tử nhằm nâng cao chất lượng trải nghiệm (Bonus Feature)
   void _showDeleteConfirmDialog(String id, String title) {
     showDialog(
       context: context,
@@ -264,7 +221,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
         actions: [
-          // Nút hành động cho phép ép buộc nạp đè dữ liệu gốc từ Asset để kiểm thử (Lab 9.1)
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
             tooltip: 'Reset from Assets JSON',
@@ -278,7 +234,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Khối thanh tìm kiếm thời gian thực (Search Engine Bar - Lab 9.3)
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -306,8 +261,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Hiển thị số lượng bản ghi thực tế đang hiện hữu
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -317,8 +270,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
               ],
             ),
             const SizedBox(height: 10),
-
-            // Khối kết quả danh sách dạng cuộn mượt mà (ListView Layer)
             Expanded(
               child: _filteredMoviesList.isEmpty
                   ? const Center(child: Text('No matching items found in JSON database.', style: TextStyle(color: Colors.grey)))
@@ -338,7 +289,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
                         foregroundColor: Colors.blueAccent,
                         child: const Icon(Icons.movie_filter_rounded),
                       ),
-                      // Đọc 2 trường thông tin thiết yếu trở lên (Title, Genre, Year) (Lab 9.1 Yêu cầu)
                       title: Text(movie['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4.0),
@@ -347,12 +297,10 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Nút sửa (Update)
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue, size: 22),
                             onPressed: () => _showMovieFormDialog(existingMovie: movie),
                           ),
-                          // Nút xóa (Delete)
                           IconButton(
                             icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
                             onPressed: () => _showDeleteConfirmDialog(movie['id'], movie['title']),
@@ -367,7 +315,6 @@ class _JsonDatabaseScreenState extends State<JsonDatabaseScreen> {
           ],
         ),
       ),
-      // Nút hành động nổi kích hoạt Form Thêm mới bộ phim (Create - Lab 9.2 & 9.3)
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showMovieFormDialog(),
         backgroundColor: Colors.blueAccent,

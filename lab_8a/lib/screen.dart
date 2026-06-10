@@ -1,7 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-import 'main.dart';
 import 'post.dart';
 import 'service.dart';
 
@@ -15,158 +12,111 @@ class PostListScreen extends StatefulWidget {
 class _PostListScreenState extends State<PostListScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<Post>> _postsFuture;
+  List<Post> _localPostsList = [];
+  bool _isDataInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    // Khởi tạo luồng nạp dữ liệu ngay khi màn hình vừa dựng xong
-    _initFetch();
+    _loadDataFromNetwork();
   }
 
-  void _initFetch() {
+  void _loadDataFromNetwork() {
     setState(() {
-      _postsFuture = _apiService.fetchPosts();
+      _postsFuture = _apiService.fetchPosts().then((data) {
+        _localPostsList = data;
+        _isDataInitialized = true;
+        return data;
+      });
     });
-  }
-
-  // Hàm hỗ trợ kích hoạt tính năng kéo để làm mới danh sách (Pull to Refresh) [cite: 477]
-  Future<void> _handleRefresh() async {
-    _initFetch();
-    await _postsFuture.catchError((_) => <Post>[]); // Tránh crash luồng Refresh khi có lỗi xảy ra
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('API Network Posts', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('API Powered List', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
-        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadDataFromNetwork,
+          )
+        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh, // Gán hành động vuốt để làm mới [cite: 477]
-        child: FutureBuilder<List<Post>>(
-          future: _postsFuture, // Khống chế luồng xử lý luân chuyển dữ liệu
-          builder: (context, snapshot) {
-            // TRẠNG THÁI 1: Hệ thống đang chờ dữ liệu đổ về từ Internet (Loading) [cite: 426, 505]
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(), // Vòng xoay vô tận
-                    SizedBox(height: 16),
-                    Text('Fetching data from API, please wait...', style: TextStyle(color: Colors.grey)),
-                  ],
+      body: FutureBuilder<List<Post>>(
+        future: _postsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && !_isDataInitialized) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Colors.indigo),
+                  SizedBox(height: 12),
+                  Text('Loading posts from API...', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          else if (snapshot.hasError && !_isDataInitialized) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-              );
+              ),
+            );
+          }
+
+          else {
+            if (_localPostsList.isEmpty) {
+              return const Center(child: Text('Danh sách trống rỗng. Hãy thêm bài viết mới!'));
             }
 
-            // TRẠNG THÁI 2: Quá trình kết nối xảy ra lỗi kỹ thuật (Error Handling) [cite: 426, 436]
-            else if (snapshot.hasError) {
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(), // Đảm bảo luôn cuộn được để kích hoạt kéo làm mới
-                child: Container(
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  padding: const EdgeInsets.all(24.0),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.redAccent, size: 60),
-                        const SizedBox(height: 16),
-                        const Text(
-                          'Something went wrong!', // Thông điệp thân thiện [cite: 452]
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '${snapshot.error}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.black54),
-                        ),
-                        const SizedBox(height: 24),
-                        // Nút Retry hỗ trợ người dùng tải lại nhanh dữ liệu [cite: 453, 481]
-                        ElevatedButton.icon(
-                          onPressed: _initFetch,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Retry'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            foregroundColor: Colors.white,
-                          ),
-                        )
-                      ],
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: _localPostsList.length,
+              itemBuilder: (context, index) {
+                final post = _localPostsList[index];
+                return Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.indigo.withOpacity(0.1),
+                      foregroundColor: Colors.indigo,
+                      child: Text('${post.id}'),
+                    ),
+                    title: Text(
+                      post.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 6.0),
+                      child: Text(
+                        post.body,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Colors.grey[700]),
+                      ),
                     ),
                   ),
-                ),
-              );
-            }
-
-            // TRẠNG THÁI 3: Kết nối thành công và có dữ liệu trả về (HasData) [cite: 507]
-            else if (snapshot.hasData) {
-              final posts = snapshot.data!;
-              if (posts.isEmpty) {
-                return const Center(child: Text('No posts available.'));
-              }
-
-              // Sử dụng ListView.builder để tối ưu hóa bộ nhớ khi vẽ danh sách dài [cite: 448, 470]
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                itemCount: posts.length,
-                itemBuilder: (context, index) {
-                  final post = posts[index];
-                  return Card(
-                    elevation: 1,
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      // Hiển thị chỉ số định danh (ID) bài viết [cite: 449]
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.indigo.withOpacity(0.1),
-                        foregroundColor: Colors.indigo,
-                        child: Text('${post.id}'),
-                      ),
-                      // Hiển thị tiêu đề bài viết từ đối tượng Model [cite: 449]
-                      title: Text(
-                        post.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          post.body,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.grey[600], height: 1.3),
-                        ),
-                      ),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.black38),
-                      onTap: () {
-                        // Gọi màn hình xem chi tiết bài viết (Bonus Feature) [cite: 478]
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PostDetailScreen(post: post),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              );
-            }
-
-            // Trạng thái dự phòng mặc định (Fallback UI)
-            return const Center(child: Text('No data found.'));
-          },
-        ),
+                );
+              },
+            );
+          }
+        },
       ),
-      // Nút hành động nổi mở Form tạo mới bài viết qua phương thức POST (Step 7) [cite: 479, 526]
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
@@ -174,50 +124,31 @@ class _PostListScreenState extends State<PostListScreen> {
             MaterialPageRoute(
               builder: (context) => CreatePostScreen(apiService: _apiService),
             ),
-          ).then((wasCreated) {
-            // Nếu gửi POST thành công, tự động làm mới danh sách để cập nhật giao diện
-            if (wasCreated == true) _initFetch();
+          ).then((newPostObj) {
+            if (newPostObj != null && newPostObj is Post) {
+              setState(() {
+                int newId = _localPostsList.isNotEmpty ? _localPostsList.first.id + 1 : 1;
+                Post finalizedPost = Post(
+                  id: newId,
+                  title: newPostObj.title,
+                  body: newPostObj.body,
+                );
+                _localPostsList.insert(0, finalizedPost);
+              });
+            }
           });
         },
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.add_comment),
+        child: const Icon(Icons.add),
       ),
     );
   }
 }
-class PostDetailScreen extends StatelessWidget {
-  final Post post;
-  const PostDetailScreen({super.key, required this.post});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Post Details #${post.id}')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              post.title,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.indigo),
-            ),
-            const SizedBox(height: 8),
-            Text('Author User ID: ${post.userId}', style: const TextStyle(color: Colors.black38, fontStyle: FontStyle.italic)),
-            const Divider(height: 30),
-            Text(
-              post.body,
-              style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.black87),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 class CreatePostScreen extends StatefulWidget {
   final ApiService apiService;
+
   const CreatePostScreen({super.key, required this.apiService});
 
   @override
@@ -230,34 +161,34 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _bodyController = TextEditingController();
   bool _isSubmitting = false;
 
-  void _submitData() async {
+  Future<void> _submitData() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+    });
 
     try {
-      // Gọi dịch vụ mạng gửi gói tin POST đi [cite: 527]
-      final result = await widget.apiService.createPost(
+      Post postCreatedFromServer = await widget.apiService.createPost(
         _titleController.text.trim(),
         _bodyController.text.trim(),
       );
 
-      if (!mounted) return;
-      // Báo cáo kết quả thành công rực rỡ cho người dùng xem [cite: 456, 528]
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Post created successfully! (New ID: ${result.id})'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context, true); // Trả về tín hiệu true báo hiệu biểu mẫu hoàn thành tốt
+      if (mounted) {
+        Navigator.pop(context, postCreatedFromServer);
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -271,38 +202,51 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create New Post')),
+      appBar: AppBar(
+        title: const Text('Create New Post'),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
-                validator: (val) => (val == null || val.isEmpty) ? 'Please enter a title' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.title),
+                ),
+                validator: (value) => (value == null || value.trim().isEmpty) ? 'Vui lòng nhập tiêu đề bài viết' : null,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _bodyController,
                 maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Content Body', border: OutlineInputBorder()),
-                validator: (val) => (val == null || val.isEmpty) ? 'Please enter content details' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Body Content',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.description),
+                ),
+                validator: (value) => (value == null || value.trim().isEmpty) ? 'Vui lòng nhập nội dung bài viết' : null,
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitData,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo, foregroundColor: Colors.white),
-                  child: _isSubmitting
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Submit Post', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ElevatedButton(
+                onPressed: _isSubmitting ? null : _submitData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-              )
+                child: _isSubmitting
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Submit Post', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
             ],
           ),
         ),

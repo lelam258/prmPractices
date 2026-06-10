@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'dart:async';
-import 'post.dart';
 import 'screen.dart';
 
 void main() {
-  runApp(const ApiNetworkApp());
+  runApp(const ApiPoweredApp());
 }
-class ApiNetworkApp extends StatelessWidget {
-  const ApiNetworkApp({super.key});
+
+class ApiPoweredApp extends StatelessWidget {
+  const ApiPoweredApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Lab 8 - API Powered App',
+      title: 'Lab 8 - REST API Integration',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         colorSchemeSeed: Colors.indigo,
-        scaffoldBackgroundColor: const Color(0xFFF6F8FA),
+        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
       ),
       home: const PostListScreen(),
     );

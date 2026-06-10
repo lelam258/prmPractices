@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -19,15 +20,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkLoginSession() async {
     await Future.delayed(const Duration(seconds: 2));
-
     final prefs = await SharedPreferences.getInstance();
     final String? cachedToken = prefs.getString('auth_token');
 
     if (!mounted) return;
+
     if (cachedToken != null && cachedToken.isNotEmpty) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomeScreen(token: cachedToken, loginMethod: 'DummyJSON API')),
+        MaterialPageRoute(builder: (context) => HomeScreen(token: cachedToken, loginMethod: 'Auto Login Session')),
       );
     } else {
       Navigator.pushReplacement(
