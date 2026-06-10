@@ -14,7 +14,7 @@ class _CommonUIFixesState extends State<CommonUIFixes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Exercise 5 – Common U...')),
+      appBar: AppBar(title: const Text('Exercise 5 – Common UÍ')),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),

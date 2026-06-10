@@ -6,7 +6,7 @@ class CoreWidgetsDemo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Exercise 1 – Core Widge...')),
+      appBar: AppBar(title: const Text('Exercise 1 – Core Widget')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

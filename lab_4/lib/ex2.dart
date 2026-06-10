@@ -30,7 +30,7 @@ class _InputControlsDemoState extends State<InputControlsDemo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Exercise 2 – Input Contr...')),
+      appBar: AppBar(title: const Text('Exercise 2 – Input Controls')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

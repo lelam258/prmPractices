@@ -16,7 +16,7 @@ class AppStructureTheme extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Exercise 4 – App Str...'),
+        title: const Text('Exercise 4 – App Structure'),
         actions: [
           Row(
             children: [

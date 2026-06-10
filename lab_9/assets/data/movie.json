@@ -1,0 +1,20 @@
+[
+  {
+    "id": "101",
+    "title": "Interstellar",
+    "genre": "Sci-Fi",
+    "year": "2014"
+  },
+  {
+    "id": "102",
+    "title": "Inception",
+    "genre": "Action",
+    "year": "2010"
+  },
+  {
+    "id": "103",
+    "title": "The Dark Knight",
+    "genre": "Crime",
+    "year": "2008"
+  }
+]

@@ -8,7 +8,7 @@ class LayoutDemo extends StatelessWidget {
     final List<String> movies = ['Avatar', 'Inception', 'Interstellar', 'Joker'];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Exercise 3 – Layout De...')),
+      appBar: AppBar(title: const Text('Exercise 3 – Layout Demo')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
